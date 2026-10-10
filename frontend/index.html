@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Detector</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <h1>AI Video Detector</h1>
+
+    <p>Upload a video to test the backend connection.</p>
+
+    <input type="file" id="videoInput" accept="video/*">
+
+    <br><br>
+
+    <video
+        id="videoPreview"
+        width="500"
+        controls
+        style="display: none;"
+    ></video>
+
+    <br><br>
+
+    <button id="analyzeBtn">Analyze Video</button>
+
+    <h2 id="result"></h2>
+
+    <script>
+        const videoInput = document.getElementById("videoInput");
+        const videoPreview = document.getElementById("videoPreview");
+        const analyzeBtn = document.getElementById("analyzeBtn");
+        const result = document.getElementById("result");
+
+        let selectedFile = null;
+
+        videoInput.addEventListener("change", function () {
+
+            selectedFile = videoInput.files[0];
+
+            if (!selectedFile) {
+                return;
+            }
+
+            const videoURL = URL.createObjectURL(selectedFile);
+
+            videoPreview.src = videoURL;
+            videoPreview.style.display = "block";
+
+            result.textContent = "";
+        });
+
+
+        analyzeBtn.addEventListener("click", async function () {
+
+            if (!selectedFile) {
+                result.textContent = "Please select a video first.";
+                return;
+            }
+
+            result.textContent = "Uploading video...";
+
+            const formData = new FormData();
+
+            formData.append("file", selectedFile);
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:8001/api/analyze",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Upload failed.");
+                }
+
+                    result.innerHTML = `
+                        <h2>Video Analysis Complete</h2>
+
+                        <h3>AI Probability: ${data.ai_probability}%</h3>
+
+                        <h3>Real Probability: ${data.real_probability}%</h3>
+
+                        <h3>Result: ${data.classification}</h3>
+
+                        <hr>
+
+                        <p><strong>Frames analyzed:</strong> ${data.frames_analyzed}</p>
+
+                        <p><strong>FPS:</strong> ${data.fps}</p>
+
+                        <p><strong>Duration:</strong> ${data.duration_seconds} seconds</p>
+
+                        <p><strong>Total frames:</strong> ${data.frame_count}</p>
+                    `;
+
+                console.log(data);
+
+            } catch (error) {
+
+                result.textContent = "Error: " + error.message;
+
+                console.error(error);
+            }
+        });
+    </script>
+
+</body>
+</html>
